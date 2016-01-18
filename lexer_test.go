@@ -1,6 +1,7 @@
 package calc
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 )
@@ -8,14 +9,23 @@ import (
 type testCase struct {
 	input          string
 	expectedOutput []token
+	expectedError  error
 }
 
 func testLexerCases(t *testing.T, testCases []testCase) {
 	for _, testCase := range testCases {
 		output, err := lex([]byte(testCase.input))
 		if err != nil {
-			t.Error(err)
-			continue
+			if testCase.expectedError == nil {
+				t.Error(err)
+				continue
+			} else if !reflect.DeepEqual(testCase.expectedError, err) {
+				t.Errorf(
+					"Expected error: %v\nBut got: %v",
+					testCase.expectedError,
+					err,
+				)
+			}
 		}
 		if !reflect.DeepEqual(output, testCase.expectedOutput) {
 			t.Errorf(
@@ -148,6 +158,23 @@ func TestCombos(t *testing.T) {
 				newNumberToken("42"),
 				closeParen,
 			},
+		},
+	})
+}
+
+func TestUnexpectedChar(t *testing.T) {
+	testLexerCases(t, []testCase{
+		{
+			input:         "f2.0 + 2",
+			expectedError: errors.New("Unexpected character at 0: 'f'"),
+		},
+		{
+			input:         "2.0 + 2",
+			expectedError: errors.New("Unexpected character at 1: '.'"),
+		},
+		{
+			input:         "(2 + 2) - foo",
+			expectedError: errors.New("Unexpected character at 10: 'f'"),
 		},
 	})
 }

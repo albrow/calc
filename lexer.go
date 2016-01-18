@@ -88,7 +88,10 @@ func lex(input []byte) ([]token, error) {
 		case ' ', '\t', '\n':
 			continue
 		default:
-
+			pos := len(input) - buf.Len() - 1
+			return nil, fmt.Errorf(
+				"Unexpected character at %d: '%s'", pos, []byte{b},
+			)
 		}
 	}
 }
