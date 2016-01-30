@@ -6,14 +6,14 @@ import (
 	"testing"
 )
 
-type testCase struct {
+type lexTestCase struct {
 	input          string
 	expectedOutput []token
 	expectedError  error
 }
 
-func testLexerCases(t *testing.T, testCases []testCase) {
-	for _, testCase := range testCases {
+func testLexerCases(t *testing.T, lexTestCases []lexTestCase) {
+	for _, testCase := range lexTestCases {
 		output, err := lex([]byte(testCase.input))
 		if err != nil {
 			if testCase.expectedError == nil {
@@ -38,8 +38,8 @@ func testLexerCases(t *testing.T, testCases []testCase) {
 	}
 }
 
-func TestParen(t *testing.T) {
-	testLexerCases(t, []testCase{
+func TestLexParen(t *testing.T) {
+	testLexerCases(t, []lexTestCase{
 		{
 			input: "(",
 			expectedOutput: []token{
@@ -75,8 +75,8 @@ func TestParen(t *testing.T) {
 	})
 }
 
-func TestNumber(t *testing.T) {
-	testLexerCases(t, []testCase{
+func TestLexNumber(t *testing.T) {
+	testLexerCases(t, []lexTestCase{
 		{
 			input: "1",
 			expectedOutput: []token{
@@ -98,8 +98,8 @@ func TestNumber(t *testing.T) {
 	})
 }
 
-func TestOperator(t *testing.T) {
-	testLexerCases(t, []testCase{
+func TestLexOperator(t *testing.T) {
+	testLexerCases(t, []lexTestCase{
 		{
 			input: "+",
 			expectedOutput: []token{
@@ -133,8 +133,8 @@ func TestOperator(t *testing.T) {
 	})
 }
 
-func TestCombos(t *testing.T) {
-	testLexerCases(t, []testCase{
+func TestLexCombos(t *testing.T) {
+	testLexerCases(t, []lexTestCase{
 		{
 			input: "2 + 2",
 			expectedOutput: []token{
@@ -162,8 +162,8 @@ func TestCombos(t *testing.T) {
 	})
 }
 
-func TestUnexpectedChar(t *testing.T) {
-	testLexerCases(t, []testCase{
+func TestLexUnexpectedChar(t *testing.T) {
+	testLexerCases(t, []lexTestCase{
 		{
 			input:         "f2.0 + 2",
 			expectedError: errors.New("Unexpected character at 0: 'f'"),

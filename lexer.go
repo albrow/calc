@@ -9,19 +9,25 @@ import (
 type tokenClass uint
 
 const (
-	tokenParen tokenClass = iota
-	tokenNumber
-	tokenOperator
+	tokenNumber tokenClass = iota
+	tokenOpenParen
+	tokenCloseParen
+	tokenAdd
+	tokenSubtract
 )
 
 func (tc tokenClass) String() string {
 	switch tc {
-	case tokenParen:
-		return "tokenParen"
+	case tokenOpenParen:
+		return "tokenOpenParen"
+	case tokenCloseParen:
+		return "tokenCloseParen"
 	case tokenNumber:
 		return "tokenNumber"
-	case tokenOperator:
-		return "tokenOperator"
+	case tokenAdd:
+		return "tokenAdd"
+	case tokenSubtract:
+		return "tokenSubtract"
 	default:
 		panic(fmt.Sprintf("Unknown token class: %v", uint(tc)))
 	}
@@ -41,19 +47,19 @@ func newNumberToken(value string) token {
 
 var (
 	openParen = token{
-		class: tokenParen,
+		class: tokenOpenParen,
 		value: "(",
 	}
 	closeParen = token{
-		class: tokenParen,
+		class: tokenCloseParen,
 		value: ")",
 	}
 	opAdd = token{
-		class: tokenOperator,
+		class: tokenAdd,
 		value: "+",
 	}
 	opSubtract = token{
-		class: tokenOperator,
+		class: tokenSubtract,
 		value: "-",
 	}
 )
