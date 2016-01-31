@@ -29,16 +29,16 @@ func (n *baseNode) AddChild(child Node) {
 	n.children = append(n.children, child)
 }
 
-type OpType uint
+type OpClass uint
 
 const (
-	opAdd OpType = iota
+	opAdd OpClass = iota
 	opSubtract
 )
 
 type Operator struct {
 	baseNode
-	Operator OpType
+	Class OpClass
 }
 
 type Number struct {
