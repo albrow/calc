@@ -1,72 +1,42 @@
-package calc
+package lex
 
 import (
 	"bytes"
 	"fmt"
 	"io"
+
+	"github.com/albrow/calc/token"
 )
 
-type tokenClass uint
-
-const (
-	tokenNumber tokenClass = iota
-	tokenOpenParen
-	tokenCloseParen
-	tokenAdd
-	tokenSubtract
-)
-
-func (tc tokenClass) String() string {
-	switch tc {
-	case tokenOpenParen:
-		return "tokenOpenParen"
-	case tokenCloseParen:
-		return "tokenCloseParen"
-	case tokenNumber:
-		return "tokenNumber"
-	case tokenAdd:
-		return "tokenAdd"
-	case tokenSubtract:
-		return "tokenSubtract"
-	default:
-		panic(fmt.Sprintf("Unknown token class: %v", uint(tc)))
-	}
-}
-
-type token struct {
-	class tokenClass
-	value string
-}
-
-func newNumberToken(value string) token {
-	return token{
-		class: tokenNumber,
-		value: value,
+func newNumberToken(value string) token.Token {
+	return token.Token{
+		Class: token.Number,
+		Value: value,
 	}
 }
 
 var (
-	openParen = token{
-		class: tokenOpenParen,
-		value: "(",
+	openParen = token.Token{
+		Class: token.OpenParen,
+		Value: "(",
 	}
-	closeParen = token{
-		class: tokenCloseParen,
-		value: ")",
+	closeParen = token.Token{
+		Class: token.CloseParen,
+		Value: ")",
 	}
-	opAdd = token{
-		class: tokenAdd,
-		value: "+",
+	opAdd = token.Token{
+		Class: token.Add,
+		Value: "+",
 	}
-	opSubtract = token{
-		class: tokenSubtract,
-		value: "-",
+	opSubtract = token.Token{
+		Class: token.Subtract,
+		Value: "-",
 	}
 )
 
-func lex(input []byte) ([]token, error) {
+func Lex(input []byte) ([]token.Token, error) {
 	buf := bytes.NewBuffer(input)
-	tokens := []token{}
+	tokens := []token.Token{}
 	for {
 		b, err := buf.ReadByte()
 		if err != nil {
@@ -102,7 +72,7 @@ func lex(input []byte) ([]token, error) {
 	}
 }
 
-func readNumber(buf *bytes.Buffer) (token, error) {
+func readNumber(buf *bytes.Buffer) (token.Token, error) {
 	value := []byte{}
 	for {
 		b, err := buf.ReadByte()
@@ -110,7 +80,7 @@ func readNumber(buf *bytes.Buffer) (token, error) {
 			if err == io.EOF {
 				return newNumberToken(string(value)), nil
 			}
-			return token{}, err
+			return token.Token{}, err
 		}
 		switch b {
 		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':

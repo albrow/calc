@@ -1,20 +1,24 @@
-package calc
+package lex
 
 import (
 	"errors"
 	"reflect"
 	"testing"
+
+	"github.com/davecgh/go-spew/spew"
+
+	"github.com/albrow/calc/token"
 )
 
-type lexTestCase struct {
+type testCase struct {
 	input          string
-	expectedOutput []token
+	expectedOutput []token.Token
 	expectedError  error
 }
 
-func testLexerCases(t *testing.T, lexTestCases []lexTestCase) {
-	for _, testCase := range lexTestCases {
-		output, err := lex([]byte(testCase.input))
+func testLexerCases(t *testing.T, testCases []testCase) {
+	for _, testCase := range testCases {
+		output, err := Lex([]byte(testCase.input))
 		if err != nil {
 			if testCase.expectedError == nil {
 				t.Error(err)
@@ -29,32 +33,32 @@ func testLexerCases(t *testing.T, lexTestCases []lexTestCase) {
 		}
 		if !reflect.DeepEqual(output, testCase.expectedOutput) {
 			t.Errorf(
-				"For input: %s\nExpected: %v\n  but got: %v",
+				"For input: %s\nExpected: %s\n  but got: %s",
 				testCase.input,
-				testCase.expectedOutput,
-				output,
+				spew.Sdump(testCase.expectedOutput),
+				spew.Sdump(output),
 			)
 		}
 	}
 }
 
 func TestLexParen(t *testing.T) {
-	testLexerCases(t, []lexTestCase{
+	testLexerCases(t, []testCase{
 		{
 			input: "(",
-			expectedOutput: []token{
+			expectedOutput: []token.Token{
 				openParen,
 			},
 		},
 		{
 			input: ")",
-			expectedOutput: []token{
+			expectedOutput: []token.Token{
 				closeParen,
 			},
 		},
 		{
 			input: "()(()())",
-			expectedOutput: []token{
+			expectedOutput: []token.Token{
 				openParen,
 				closeParen,
 				openParen,
@@ -67,7 +71,7 @@ func TestLexParen(t *testing.T) {
 		},
 		{
 			input: " \n(\t)\t ",
-			expectedOutput: []token{
+			expectedOutput: []token.Token{
 				openParen,
 				closeParen,
 			},
@@ -76,22 +80,22 @@ func TestLexParen(t *testing.T) {
 }
 
 func TestLexNumber(t *testing.T) {
-	testLexerCases(t, []lexTestCase{
+	testLexerCases(t, []testCase{
 		{
 			input: "1",
-			expectedOutput: []token{
+			expectedOutput: []token.Token{
 				newNumberToken("1"),
 			},
 		},
 		{
 			input: "123456",
-			expectedOutput: []token{
+			expectedOutput: []token.Token{
 				newNumberToken("123456"),
 			},
 		},
 		{
 			input: " \n\t123456\t\n",
-			expectedOutput: []token{
+			expectedOutput: []token.Token{
 				newNumberToken("123456"),
 			},
 		},
@@ -99,22 +103,22 @@ func TestLexNumber(t *testing.T) {
 }
 
 func TestLexOperator(t *testing.T) {
-	testLexerCases(t, []lexTestCase{
+	testLexerCases(t, []testCase{
 		{
 			input: "+",
-			expectedOutput: []token{
+			expectedOutput: []token.Token{
 				opAdd,
 			},
 		},
 		{
 			input: "-",
-			expectedOutput: []token{
+			expectedOutput: []token.Token{
 				opSubtract,
 			},
 		},
 		{
 			input: "++--+-",
-			expectedOutput: []token{
+			expectedOutput: []token.Token{
 				opAdd,
 				opAdd,
 				opSubtract,
@@ -125,7 +129,7 @@ func TestLexOperator(t *testing.T) {
 		},
 		{
 			input: "\t+ -\t \n",
-			expectedOutput: []token{
+			expectedOutput: []token.Token{
 				opAdd,
 				opSubtract,
 			},
@@ -134,10 +138,10 @@ func TestLexOperator(t *testing.T) {
 }
 
 func TestLexCombos(t *testing.T) {
-	testLexerCases(t, []lexTestCase{
+	testLexerCases(t, []testCase{
 		{
 			input: "2 + 2",
-			expectedOutput: []token{
+			expectedOutput: []token.Token{
 				newNumberToken("2"),
 				opAdd,
 				newNumberToken("2"),
@@ -145,7 +149,7 @@ func TestLexCombos(t *testing.T) {
 		},
 		{
 			input: "\t(2 + 2) -\n (31 + 42)\n\n",
-			expectedOutput: []token{
+			expectedOutput: []token.Token{
 				openParen,
 				newNumberToken("2"),
 				opAdd,
@@ -163,7 +167,7 @@ func TestLexCombos(t *testing.T) {
 }
 
 func TestLexUnexpectedChar(t *testing.T) {
-	testLexerCases(t, []lexTestCase{
+	testLexerCases(t, []testCase{
 		{
 			input:         "f2.0 + 2",
 			expectedError: errors.New("Unexpected character at 0: 'f'"),
