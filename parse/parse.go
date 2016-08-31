@@ -36,114 +36,197 @@ func newUnexpectedTokenError(t token.Token) error {
 	return fmt.Errorf("Unexpected token: %s", t.Value)
 }
 
+func newUnexpectedTokenErrorNext(buf *token.Buffer) error {
+	t, err := buf.Read()
+	if err != nil {
+		return err
+	}
+	return newUnexpectedTokenError(t)
+}
+
 // nullTerm returns a function which will check if the next token is the given
-// token class. If it is, that function will return the tree without making any
-// changes. If it is not, that function will return an error. nullTerm is used
-// to check for terminal tokens which should not be added to the AST, such as
-// "(" and ")".
-func nullTerm(class token.Class) func(*token.Buffer, ast.Node) (ast.Node, error) {
-	return func(buf *token.Buffer, tree ast.Node) (ast.Node, error) {
+// token class. If it is, that function will return nil, nil. If it is not,
+// that function will return an error. nullTerm is used to check for terminal
+// tokens which should not be added to the AST, such as "(" and ")".
+func nullTerm(class token.Class) func(*token.Buffer) error {
+	return func(buf *token.Buffer) (err error) {
+		origPos := buf.Pos()
+		defer func() {
+			if err != nil {
+				buf.MustSeek(origPos)
+			}
+		}()
 		if t, err := buf.Read(); err != nil {
-			return nil, err
+			return err
 		} else if t.Class == class {
-			return tree, nil
+			return nil
 		} else {
-			return nil, newUnexpectedTokenError(t)
+			return newUnexpectedTokenError(t)
 		}
 	}
 }
 
-func termAdd(buf *token.Buffer, tree ast.Node) (ast.Node, error) {
-	if t, err := buf.Read(); err != nil {
+var termOpenParen = nullTerm(token.OpenParen)
+var termCloseParen = nullTerm(token.CloseParen)
+
+func termOp(buf *token.Buffer) (node ast.Node, err error) {
+	origPos := buf.Pos()
+	defer func() {
+		if err != nil {
+			buf.MustSeek(origPos)
+		}
+	}()
+	t, err := buf.Read()
+	if err != nil {
 		return nil, err
-	} else if t.Class == token.Add {
-		// Add an operator node to the AST. The newly added node will become
-		// the new root of the tree.
-		newTree := tree.Copy()
-		opNode := &ast.Operator{
+	}
+	switch t.Class {
+	case token.Add:
+		return &ast.Operator{
 			Class: ast.OpAdd,
-		}
-		newTree.AddChild(opNode)
-		return opNode, nil
-	} else {
-		return nil, newUnexpectedTokenError(t)
-	}
-}
-
-func termSubtract(buf *token.Buffer, tree ast.Node) (ast.Node, error) {
-	if t, err := buf.Read(); err != nil {
-		return nil, err
-	} else if t.Class == token.Subtract {
-		// Add an operator node to the AST. The newly added node will become
-		// the new root of the tree.
-		newTree := tree.Copy()
-		opNode := &ast.Operator{
+		}, nil
+	case token.Subtract:
+		return &ast.Operator{
 			Class: ast.OpSubtract,
-		}
-		newTree.AddChild(opNode)
-		return opNode, nil
-	} else {
-		return nil, newUnexpectedTokenError(t)
+		}, nil
 	}
+	return nil, newUnexpectedTokenError(t)
 }
 
-func termNumber(buf *token.Buffer, tree ast.Node) (ast.Node, error) {
+func termNumber(buf *token.Buffer) (node ast.Node, err error) {
+	origPos := buf.Pos()
+	defer func() {
+		if err != nil {
+			buf.MustSeek(origPos)
+		}
+	}()
 	if t, err := buf.Read(); err != nil {
 		return nil, err
 	} else if t.Class == token.Number {
-		// Create a copy of the current root and add a number node to it.
-		newTree := tree.Copy()
-		numNode := &ast.Number{
+		return &ast.Number{
 			Value: t.Value,
-		}
-		newTree.AddChild(numNode)
-		return newTree, nil
+		}, nil
 	} else {
 		return nil, newUnexpectedTokenError(t)
 	}
 }
 
 // E -> E' Op E | E'
-func e(buf *token.Buffer, tree ast.Node) (ast.Node, error) {
-	return nil, nil
+func e(buf *token.Buffer, tree ast.Node) (newTree ast.Node, err error) {
+	origPos := buf.Pos()
+	defer func() {
+		if err != nil {
+			buf.MustSeek(origPos)
+		}
+	}()
+	if newTree, err := e1(buf, tree); err == nil {
+		return newTree, nil
+	} else if newTree, err := e2(buf, tree); err == nil {
+		return newTree, nil
+	}
+	buf.MustSeek(origPos)
+	return nil, newUnexpectedTokenErrorNext(buf)
 }
 
 // E1 -> E' Op E
-func e1(buf *token.Buffer, tree ast.Node) (ast.Node, error) {
-	return nil, nil
+func e1(buf *token.Buffer, tree ast.Node) (newTree ast.Node, err error) {
+	origPos := buf.Pos()
+	defer func() {
+		if err != nil {
+			buf.MustSeek(origPos)
+		}
+	}()
+	newTree = tree.Copy()
+	epTree, err := ep(buf, tree.Copy())
+	if err != nil {
+		return nil, err
+	}
+	newTree.AddChildren(epTree.Children())
+	if buf.Pos() >= buf.Len() {
+		return nil, io.EOF
+	}
+	opNode, err := termOp(buf)
+	if err != nil {
+		return nil, err
+	}
+	newTree.AddChild(opNode)
+	if buf.Pos() >= buf.Len() {
+		return nil, io.EOF
+	}
+	eTree, err := e(buf, tree.Copy())
+	if err != nil {
+		return nil, err
+	}
+	newTree.AddChildren(eTree.Children())
+	return newTree, nil
 }
 
 // E2 -> E'
 func e2(buf *token.Buffer, tree ast.Node) (ast.Node, error) {
-	return nil, nil
+	return ep(buf, tree)
 }
 
 // E' -> Number | "(" E ")"
-func ep(buf *token.Buffer, tree ast.Node) (ast.Node, error) {
-	return nil, nil
+func ep(buf *token.Buffer, tree ast.Node) (newTree ast.Node, err error) {
+	origPos := buf.Pos()
+	defer func() {
+		if err != nil {
+			buf.MustSeek(origPos)
+		}
+	}()
+	if newTree, err := ep1(buf, tree); err == nil {
+		return newTree, nil
+	} else if newTree, err := ep2(buf, tree); err == nil {
+		return newTree, nil
+	}
+	buf.MustSeek(origPos)
+	return nil, newUnexpectedTokenErrorNext(buf)
 }
 
 // E'1 -> Number
-func ep1(buf *token.Buffer, tree ast.Node) (ast.Node, error) {
-	return nil, nil
+func ep1(buf *token.Buffer, tree ast.Node) (newTree ast.Node, err error) {
+	origPos := buf.Pos()
+	defer func() {
+		if err != nil {
+			buf.MustSeek(origPos)
+		}
+	}()
+	node, err := termNumber(buf)
+	if err != nil {
+		return nil, err
+	}
+	newTree = tree.Copy()
+	newTree.AddChild(node)
+	return newTree, nil
 }
 
 // E'2 -> "(" E ")"
-func ep2(buf *token.Buffer, tree ast.Node) (ast.Node, error) {
-	return nil, nil
-}
-
-// Op -> "+" | "-"
-func op(buf *token.Buffer, tree ast.Node) (ast.Node, error) {
-	return nil, nil
-}
-
-// Op1 -> "+"
-func op1(buf *token.Buffer, tree ast.Node) (ast.Node, error) {
-	return nil, nil
-}
-
-// Op2 -> "-"
-func op2(buf *token.Buffer, tree ast.Node) (ast.Node, error) {
-	return nil, nil
+func ep2(buf *token.Buffer, tree ast.Node) (newTree ast.Node, err error) {
+	origPos := buf.Pos()
+	defer func() {
+		if err != nil {
+			buf.MustSeek(origPos)
+		}
+	}()
+	newTree = tree.Copy()
+	expr := ast.New()
+	newTree.AddChild(expr)
+	if err := termOpenParen(buf); err != nil {
+		return nil, err
+	}
+	if buf.Pos() >= buf.Len() {
+		return nil, io.EOF
+	}
+	eTree, err := e(buf, tree.Copy())
+	if err != nil {
+		return nil, err
+	}
+	expr.AddChildren(eTree.Children())
+	if buf.Pos() >= buf.Len() {
+		return nil, io.EOF
+	}
+	if err := termCloseParen(buf); err != nil {
+		return nil, err
+	}
+	return newTree, nil
 }

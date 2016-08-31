@@ -17,6 +17,10 @@ func NewBuffer(tokens []Token) *Buffer {
 	}
 }
 
+func (b Buffer) Len() int {
+	return len(b.tokens)
+}
+
 func (b Buffer) Pos() int {
 	return b.pos
 }
@@ -27,6 +31,12 @@ func (b *Buffer) Seek(pos int) error {
 	}
 	b.pos = pos
 	return nil
+}
+
+func (b *Buffer) MustSeek(pos int) {
+	if err := b.Seek(pos); err != nil {
+		panic(err)
+	}
 }
 
 func (b *Buffer) Read() (Token, error) {

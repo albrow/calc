@@ -6,6 +6,7 @@ type Node interface {
 	Children() []Node
 	Parent() Node
 	AddChild(Node)
+	AddChildren([]Node)
 	Copy() Node
 	Draw()
 	Format(int) string
@@ -36,6 +37,12 @@ func (n *baseNode) setParent(parent Node) {
 func (n *baseNode) AddChild(child Node) {
 	child.setParent(n)
 	n.children = append(n.children, child)
+}
+
+func (n *baseNode) AddChildren(children []Node) {
+	for _, child := range children {
+		n.AddChild(child)
+	}
 }
 
 func (old *baseNode) Copy() Node {
