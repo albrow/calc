@@ -13,51 +13,51 @@ type Node interface {
 	setParent(Node)
 }
 
-type baseNode struct {
+type BaseNode struct {
 	children []Node
 	parent   Node
 }
 
 func New() Node {
-	return &baseNode{}
+	return &BaseNode{}
 }
 
-func (n baseNode) Children() []Node {
+func (n BaseNode) Children() []Node {
 	return n.children
 }
 
-func (n baseNode) Parent() Node {
+func (n BaseNode) Parent() Node {
 	return n.parent
 }
 
-func (n *baseNode) setParent(parent Node) {
+func (n *BaseNode) setParent(parent Node) {
 	n.parent = parent
 }
 
-func (n *baseNode) AddChild(child Node) {
+func (n *BaseNode) AddChild(child Node) {
 	child.setParent(n)
 	n.children = append(n.children, child)
 }
 
-func (n *baseNode) AddChildren(children []Node) {
+func (n *BaseNode) AddChildren(children []Node) {
 	for _, child := range children {
 		n.AddChild(child)
 	}
 }
 
-func (old *baseNode) Copy() Node {
-	newNode := &baseNode{}
+func (old *BaseNode) Copy() Node {
+	newNode := &BaseNode{}
 	for _, child := range old.children {
 		newNode.AddChild(child.Copy())
 	}
 	return newNode
 }
 
-func (n baseNode) Draw() {
+func (n BaseNode) Draw() {
 	fmt.Println(n.Format(0))
 }
 
-func (n baseNode) Format(depth int) string {
+func (n BaseNode) Format(depth int) string {
 	indent := ""
 	output := ""
 	for i := 0; i < depth; i++ {
@@ -89,7 +89,7 @@ func (c OpClass) String() string {
 }
 
 type Operator struct {
-	baseNode
+	BaseNode
 	Class OpClass
 }
 
@@ -118,7 +118,7 @@ func (n Operator) Format(depth int) string {
 }
 
 type Number struct {
-	baseNode
+	BaseNode
 	Value string
 }
 

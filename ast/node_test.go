@@ -8,7 +8,7 @@ import (
 )
 
 func TestChildren(t *testing.T) {
-	parent := &baseNode{}
+	parent := &BaseNode{}
 	children := []Node{
 		&Number{
 			Value: "1",
@@ -31,7 +31,7 @@ func TestChildren(t *testing.T) {
 }
 
 func TestParent(t *testing.T) {
-	parent := &baseNode{}
+	parent := &BaseNode{}
 	child := &Operator{
 		Class: OpAdd,
 	}
